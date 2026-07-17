@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+<meta name="theme-color" content="#123B5E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Neta Pruva">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="favicon.png" type="image/png">
+<title>Neta Pruva — Yat Kaptanlığı El Kitabı</title>
+<style>
+  :root{
+    --lacivert:#123B5E; --mavi:#2C6E9B; --acik:#EEF2F5;
+    --koyu:#4A4A4A; --kagit:#F7F5F1; --cizgi:#D8DEE4;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#20303C; color:#1a1a1a; overscroll-behavior:none;}
+
+  /* ---------- Açılış ---------- */
+  #splash{position:fixed;inset:0;z-index:100;background:var(--lacivert);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    transition:opacity .45s; color:#fff;}
+  #splash.gizle{opacity:0;pointer-events:none;}
+  #splash svg{width:96px;height:96px;opacity:.9}
+  #splash h1{font-size:30px;letter-spacing:5px;margin:22px 0 4px;font-weight:700}
+  #splash p{margin:0;opacity:.6;font-size:12px;letter-spacing:2.5px}
+  #yukleme{margin-top:26px;width:150px;height:2px;background:rgba(255,255,255,.2);
+    border-radius:2px;overflow:hidden}
+  #yukleme i{display:block;height:100%;width:0;background:#fff;transition:width .3s}
+
+  /* ---------- Üst bar ---------- */
+  #ust{position:fixed;top:0;left:0;right:0;height:calc(52px + var(--safe-top));
+    padding-top:var(--safe-top);
+    background:var(--lacivert);color:#fff;display:flex;align-items:center;
+    gap:4px;padding-left:4px;padding-right:4px;z-index:40;
+    box-shadow:0 2px 10px rgba(0,0,0,.25)}
+  #ust .bosluk{flex:1}
+  #baslik{font-size:14px;font-weight:600;letter-spacing:.5px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ikon{width:42px;height:42px;border:0;background:none;color:#fff;
+    border-radius:10px;display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+  .ikon:active{background:rgba(255,255,255,.16)}
+  .ikon svg{width:21px;height:21px;fill:none;stroke:currentColor;
+    stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ---------- Okuyucu ---------- */
+  #okuyucu{position:absolute;top:calc(52px + var(--safe-top));
+    bottom:calc(48px + var(--safe-bot));left:0;right:0;
+    overflow:auto;-webkit-overflow-scrolling:touch;background:#20303C;
+    display:flex;flex-direction:column;align-items:center;padding:10px 0 20px}
+  canvas{background:var(--kagit);box-shadow:0 4px 20px rgba(0,0,0,.4);
+    border-radius:3px;max-width:100%;height:auto;display:block}
+  #metinKat{position:absolute;color:transparent;pointer-events:none}
+  #metinKat mark{background:#FFD54F;opacity:.55;border-radius:2px}
+
+  /* ---------- Alt bar ---------- */
+  #alt{position:fixed;bottom:0;left:0;right:0;height:calc(48px + var(--safe-bot));
+    padding-bottom:var(--safe-bot);
+    background:#fff;border-top:1px solid var(--cizgi);display:flex;
+    align-items:center;justify-content:center;gap:14px;z-index:40}
+  #alt button{border:0;background:var(--acik);color:var(--lacivert);width:40px;
+    height:34px;border-radius:9px;font-size:17px;cursor:pointer}
+  #alt button:active{background:#dbe3ea}
+  #alt button:disabled{opacity:.3}
+  #sayfaKutu{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--koyu)}
+  #sayfaNo{width:56px;text-align:center;border:1px solid var(--cizgi);
+    border-radius:8px;padding:6px 2px;font-size:13px;font-family:inherit}
+
+  /* ---------- Paneller ---------- */
+  .panel{position:fixed;top:0;bottom:0;left:0;width:min(86vw,370px);
+    background:#fff;z-index:60;transform:translateX(-102%);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;box-shadow:4px 0 26px rgba(0,0,0,.3)}
+  .panel.acik{transform:none}
+  .panel.sag{left:auto;right:0;transform:translateX(102%)}
+  .panel.sag.acik{transform:none}
+  .panelUst{background:var(--lacivert);color:#fff;padding:var(--safe-top) 8px 0 14px;
+    height:calc(52px + var(--safe-top));display:flex;align-items:center;gap:8px;flex:0 0 auto}
+  .panelUst h2{font-size:14px;margin:0;flex:1;font-weight:600;letter-spacing:.5px}
+  .panelIc{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;
+    padding-bottom:calc(16px + var(--safe-bot))}
+  #golge{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;
+    opacity:0;pointer-events:none;transition:opacity .28s}
+  #golge.acik{opacity:1;pointer-events:auto}
+
+  /* ---------- İçindekiler ---------- */
+  .tocSat{display:flex;align-items:center;border-bottom:1px solid #F0F2F4;cursor:pointer}
+  .tocSat:active{background:var(--acik)}
+  .tocSat .yazi{flex:1;padding:12px 8px 12px 0;font-size:14px;line-height:1.35;color:#1a1a1a}
+  .tocSat .sf{font-size:11px;color:#9AA5AE;padding-right:12px;font-variant-numeric:tabular-nums}
+  .tocSat.d0 .yazi{font-weight:700;color:var(--lacivert);padding-left:14px;font-size:14px}
+  .tocSat.d0{background:#F7F9FB}
+  .tocSat.d1 .yazi{padding-left:26px}
+  .tocSat.d2 .yazi{padding-left:42px;font-size:13px;color:#5A6672}
+  .kismiBaslik{padding:14px 14px 6px;font-size:11px;letter-spacing:1.6px;
+    color:#98A2AC;font-weight:700}
+
+  /* ---------- Arama ---------- */
+  #aramaKutu{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--cizgi);
+    flex:0 0 auto}
+  #aramaGiris{flex:1;border:1px solid var(--cizgi);border-radius:10px;
+    padding:11px 12px;font-size:15px;font-family:inherit;outline:none}
+  #aramaGiris:focus{border-color:var(--mavi)}
+  #aramaBtn{border:0;background:var(--lacivert);color:#fff;border-radius:10px;
+    padding:0 16px;font-size:14px;cursor:pointer;font-family:inherit}
+  #aramaDurum{padding:9px 14px;font-size:12px;color:#8A949E;
+    border-bottom:1px solid #F0F2F4}
+  .sonuc{padding:11px 14px;border-bottom:1px solid #F0F2F4;cursor:pointer}
+  .sonuc:active{background:var(--acik)}
+  .sonuc .ust{display:flex;justify-content:space-between;align-items:baseline;
+    margin-bottom:3px}
+  .sonuc .bolum{font-size:11px;color:var(--mavi);font-weight:600;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
+  .sonuc .sf{font-size:11px;color:#9AA5AE;flex:0 0 auto}
+  .sonuc .parca{font-size:13px;color:#3C4650;line-height:1.45}
+  .sonuc .parca b{background:#FFE082;color:#000;padding:0 2px;border-radius:2px}
+
+  #bos{padding:34px 22px;text-align:center;color:#9AA5AE;font-size:13px;line-height:1.6}
+  .ipucu{margin-top:14px;font-size:12px;color:#B4BCC4}
+</style>
+</head>
+<body>
+
+<!-- Açılış -->
+<div id="splash">
+  <svg viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.4"/>
+    <circle cx="50" cy="50" r="30" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.4"/>
+    <g fill="#fff">
+      <path d="M50 8 L56 44 L50 50 L44 44 Z" opacity=".95"/>
+      <path d="M50 92 L44 56 L50 50 L56 56 Z" opacity=".65"/>
+      <path d="M8 50 L44 44 L50 50 L44 56 Z" opacity=".65"/>
+      <path d="M92 50 L56 56 L50 50 L56 44 Z" opacity=".65"/>
+    </g>
+    <circle cx="50" cy="50" r="3.4" fill="#123B5E" stroke="#fff" stroke-width="1.2"/>
+  </svg>
+  <h1>NETA PRUVA</h1>
+  <p>YAT KAPTANLIĞI EL KİTABI</p>
+  <div id="yukleme"><i></i></div>
+</div>
+
+<!-- Üst bar -->
+<div id="ust">
+  <button class="ikon" id="tocBtn" aria-label="İçindekiler">
+    <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <div id="baslik">Neta Pruva</div>
+  <div class="bosluk"></div>
+  <button class="ikon" id="araBtn" aria-label="Ara">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+  </button>
+</div>
+
+<!-- Okuyucu -->
+<div id="okuyucu"><canvas id="tuval"></canvas></div>
+
+<!-- Alt bar -->
+<div id="alt">
+  <button id="geri">‹</button>
+  <div id="sayfaKutu">
+    <input id="sayfaNo" type="number" min="1" inputmode="numeric">
+    <span id="toplam">/ —</span>
+  </div>
+  <button id="ileri">›</button>
+</div>
+
+<!-- İçindekiler paneli -->
+<div class="panel" id="tocPanel">
+  <div class="panelUst">
+    <h2>İÇİNDEKİLER</h2>
+    <button class="ikon" id="tocKapat">
+      <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="panelIc" id="tocIc"></div>
+</div>
+
+<!-- Arama paneli -->
+<div class="panel sag" id="araPanel">
+  <div class="panelUst">
+    <h2>ARA</h2>
+    <button class="ikon" id="araKapat">
+      <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div id="aramaKutu">
+    <input id="aramaGiris" placeholder="kaloma, izbarço, kerteriz…"
+           autocomplete="off" autocorrect="off" spellcheck="false">
+    <button id="aramaBtn">Ara</button>
+  </div>
+  <div id="aramaDurum" style="display:none"></div>
+  <div class="panelIc" id="sonuclar">
+    <div id="bos">Kitabın tamamında arama yapar.
+      <div class="ipucu">Örnek: <b>kaloma</b> · <b>izbarço</b> · <b>MAYDAY</b>
+      · <b>kardinal</b> · <b>çark etkisi</b></div>
+    </div>
+  </div>
+</div>
+
+<div id="golge"></div>
+
+<script src="pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+
+let pdf = null, sayfa = 1, toplam = 0, render = false, bekleyen = null;
+let dizin = [];                 // arama dizini: {s, metin}
+let tocKayit = [];              // {baslik, sayfa}
+const tuval = document.getElementById('tuval');
+const ctx = tuval.getContext('2d', {alpha:false});
+const okuyucu = document.getElementById('okuyucu');
+
+/* ---------- Yardımcılar ---------- */
+const $ = id => document.getElementById(id);
+function panelAc(p){ p.classList.add('acik'); $('golge').classList.add('acik'); }
+function panelKapat(){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('acik'));
+  $('golge').classList.remove('acik');
+}
+
+/* ---------- Sayfa çiz ---------- */
+async function ciz(n){
+  if(render){ bekleyen = n; return; }
+  render = true;
+  try{
+    const p = await pdf.getPage(n);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    const genislik = Math.min(okuyucu.clientWidth - 16, 760);
+    const temel = p.getViewport({scale:1});
+    const olcek = genislik / temel.width;
+    const vp = p.getViewport({scale: olcek * dpr});
+    tuval.width = vp.width; tuval.height = vp.height;
+    tuval.style.width = genislik + 'px';
+    tuval.style.height = (vp.height/dpr) + 'px';
+    await p.render({canvasContext: ctx, viewport: vp}).promise;
+    sayfa = n;
+    $('sayfaNo').value = n;
+    okuyucu.scrollTop = 0;
+    $('geri').disabled = n <= 1;
+    $('ileri').disabled = n >= toplam;
+    try{ localStorage.setItem('np_sayfa', n); }catch(e){}
+    basligiGuncelle(n);
+  }catch(e){ console.error(e); }
+  render = false;
+  if(bekleyen !== null){ const k = bekleyen; bekleyen = null; ciz(k); }
+}
+
+function basligiGuncelle(n){
+  let b = 'Neta Pruva';
+  for(const t of tocKayit){ if(t.sayfa <= n) b = t.baslik; else break; }
+  $('baslik').textContent = b;
+}
+
+function git(n){
+  n = Math.max(1, Math.min(toplam, n|0));
+  if(n !== sayfa || !render) ciz(n);
+}
+
+/* ---------- İçindekiler ---------- */
+async function tocKur(){
+  const ol = await pdf.getOutline();
+  const ic = $('tocIc');
+  if(!ol){ ic.innerHTML = '<div id="bos">İçindekiler bulunamadı.</div>'; return; }
+
+  async function sayfaNoBul(hedef){
+    try{
+      let d = hedef;
+      if(typeof d === 'string') d = await pdf.getDestination(d);
+      if(!d) return null;
+      const idx = await pdf.getPageIndex(d[0]);
+      return idx + 1;
+    }catch(e){ return null; }
+  }
+
+  const parcalar = [];
+  async function gez(list, derinlik){
+    for(const it of list){
+      const n = await sayfaNoBul(it.dest);
+      if(n){ tocKayit.push({baslik: it.title, sayfa: n}); }
+      parcalar.push({baslik: it.title, sayfa: n, derinlik});
+      if(it.items && it.items.length && derinlik < 1) await gez(it.items, derinlik+1);
+    }
+  }
+  await gez(ol, 0);
+  tocKayit.sort((a,b)=>a.sayfa-b.sayfa);
+
+  ic.innerHTML = '';
+  for(const p of parcalar){
+    const d = document.createElement('div');
+    d.className = 'tocSat d' + p.derinlik;
+    d.innerHTML = '<div class="yazi"></div><div class="sf"></div>';
+    d.querySelector('.yazi').textContent = p.baslik;
+    d.querySelector('.sf').textContent = p.sayfa || '';
+    if(p.sayfa) d.onclick = ()=>{ git(p.sayfa); panelKapat(); };
+    ic.appendChild(d);
+  }
+}
+
+/* ---------- Arama dizini ---------- */
+async function dizinKur(){
+  const bar = document.querySelector('#yukleme i');
+  for(let i=1; i<=toplam; i++){
+    const p = await pdf.getPage(i);
+    const tc = await p.getTextContent();
+    dizin.push({s:i, metin: tc.items.map(x=>x.str).join(' ').replace(/\s+/g,' ')});
+    if(i % 12 === 0){
+      bar.style.width = Math.round(i/toplam*100) + '%';
+      await new Promise(r=>setTimeout(r,0));
+    }
+  }
+  bar.style.width = '100%';
+}
+
+function bolumBul(n){
+  let b = '';
+  for(const t of tocKayit){ if(t.sayfa <= n) b = t.baslik; else break; }
+  return b;
+}
+
+const trKucuk = s => s.replace(/İ/g,'i').replace(/I/g,'ı').toLowerCase('tr');
+
+function ara(q){
+  q = q.trim(); if(!q) return;
+  const kap = $('sonuclar'), durum = $('aramaDurum');
+  const qq = trKucuk(q);
+  const bulunan = [];
+  for(const d of dizin){
+    const alt = trKucuk(d.metin);
+    let i = alt.indexOf(qq), kez = 0;
+    while(i !== -1 && kez < 3){
+      const bas = Math.max(0, i-45), son = Math.min(d.metin.length, i+qq.length+55);
+      bulunan.push({
+        s: d.s,
+        once: (bas>0?'…':'') + d.metin.slice(bas, i),
+        vurgu: d.metin.slice(i, i+qq.length),
+        sonra: d.metin.slice(i+qq.length, son) + (son<d.metin.length?'…':'')
+      });
+      i = alt.indexOf(qq, i+qq.length); kez++;
+    }
+  }
+  durum.style.display = 'block';
+  durum.textContent = bulunan.length
+    ? bulunan.length + ' sonuç · ' + new Set(bulunan.map(b=>b.s)).size + ' sayfa'
+    : 'Sonuç bulunamadı';
+  if(!bulunan.length){
+    kap.innerHTML = '<div id="bos">“' + q + '” için sonuç yok.' +
+      '<div class="ipucu">Yazımı kontrol edin veya daha kısa bir kelime deneyin.</div></div>';
+    return;
+  }
+  kap.innerHTML = '';
+  for(const b of bulunan.slice(0,140)){
+    const d = document.createElement('div');
+    d.className = 'sonuc';
+    d.innerHTML =
+      '<div class="ust"><div class="bolum"></div><div class="sf">s. '+b.s+'</div></div>'+
+      '<div class="parca"></div>';
+    d.querySelector('.bolum').textContent = bolumBul(b.s);
+    const pz = d.querySelector('.parca');
+    pz.append(b.once);
+    const bb = document.createElement('b'); bb.textContent = b.vurgu; pz.append(bb);
+    pz.append(b.sonra);
+    d.onclick = ()=>{ git(b.s); panelKapat(); };
+    kap.appendChild(d);
+  }
+  kap.scrollTop = 0;
+}
+
+/* ---------- Olaylar ---------- */
+$('geri').onclick  = ()=> git(sayfa-1);
+$('ileri').onclick = ()=> git(sayfa+1);
+$('sayfaNo').onchange = e => git(parseInt(e.target.value)||1);
+
+$('tocBtn').onclick   = ()=> panelAc($('tocPanel'));
+$('tocKapat').onclick = panelKapat;
+$('golge').onclick    = panelKapat;
+
+$('araKapat').onclick = panelKapat;
+
+// üst bardaki büyüteç: arama panelini açar
+$('araBtn').onclick = ()=>{
+  panelAc($('araPanel'));
+  setTimeout(()=> $('aramaGiris').focus(), 300);
+};
+
+// panel içindeki "Ara" butonu ve Enter tuşu: aramayı yapar
+$('aramaBtn').onclick = ()=>{ ara($('aramaGiris').value); $('aramaGiris').blur(); };
+$('aramaGiris').addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ ara(e.target.value); e.target.blur(); }
+});
+
+// klavye
+window.addEventListener('keydown', e=>{
+  if(e.target.tagName === 'INPUT') return;
+  if(e.key === 'ArrowRight' || e.key === 'PageDown') git(sayfa+1);
+  if(e.key === 'ArrowLeft'  || e.key === 'PageUp')   git(sayfa-1);
+});
+
+// kaydırma ile sayfa çevirme
+let dx0 = null, dy0 = null;
+okuyucu.addEventListener('touchstart', e=>{
+  if(e.touches.length===1){ dx0 = e.touches[0].clientX; dy0 = e.touches[0].clientY; }
+}, {passive:true});
+okuyucu.addEventListener('touchend', e=>{
+  if(dx0===null) return;
+  const dx = e.changedTouches[0].clientX - dx0;
+  const dy = e.changedTouches[0].clientY - dy0;
+  if(Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy)*1.8){
+    git(dx < 0 ? sayfa+1 : sayfa-1);
+  }
+  dx0 = null;
+}, {passive:true});
+
+let boyutZaman;
+window.addEventListener('resize', ()=>{
+  clearTimeout(boyutZaman);
+  boyutZaman = setTimeout(()=>ciz(sayfa), 220);
+});
+
+/* ---------- Başlat ---------- */
+(async ()=>{
+  try{
+    pdf = await pdfjsLib.getDocument('kitap.pdf').promise;
+    toplam = pdf.numPages;
+    $('toplam').textContent = '/ ' + toplam;
+    $('sayfaNo').max = toplam;
+    let bas = 1;
+    try{ bas = Math.min(toplam, parseInt(localStorage.getItem('np_sayfa'))||1); }catch(e){}
+    await ciz(bas);
+    await tocKur();
+    basligiGuncelle(sayfa);   // içindekiler kurulduktan sonra başlığı tazele
+    await dizinKur();
+    setTimeout(()=> $('splash').classList.add('gizle'), 260);
+  }catch(e){
+    document.getElementById('splash').innerHTML =
+      '<div style="padding:30px;text-align:center;color:#fff;font-size:14px;line-height:1.6">'+
+      'Kitap yüklenemedi.<br><br><span style="opacity:.6;font-size:12px">'+
+      'Dosyayı bir web sunucusu üzerinden açın.<br>(kitap.pdf bulunamadı)</span></div>';
+    console.error(e);
+  }
+})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

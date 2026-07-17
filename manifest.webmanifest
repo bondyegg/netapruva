@@ -1,0 +1,17 @@
+{
+  "name": "Neta Pruva — Yat Kaptanlığı El Kitabı",
+  "short_name": "Neta Pruva",
+  "description": "Yat kaptanlığı el kitabı: gemicilik, manevra, seyir, COLREG, haberleşme, yelken, STCW ve mevzuat.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#123B5E",
+  "theme_color": "#123B5E",
+  "lang": "tr",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
