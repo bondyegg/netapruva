@@ -19,7 +19,7 @@
     --safe-bot: env(safe-area-inset-bottom, 0px);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;height:100%;overflow:hidden;
+  html,body{margin:0;height:100%;height:100dvh;overflow:hidden;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:#20303C; color:#1a1a1a; overscroll-behavior:none;}
 
@@ -232,10 +232,12 @@ async function ciz(n){
   try{
     const p = await pdf.getPage(n);
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    const genislik = Math.min(okuyucu.clientWidth - 16, 760);
+    const genislikMax = Math.min(okuyucu.clientWidth - 16, 760);
+    const yukseklikMax = okuyucu.clientHeight - 30;
     const temel = p.getViewport({scale:1});
-    const olcek = genislik / temel.width;
+    const olcek = Math.min(genislikMax / temel.width, yukseklikMax / temel.height);
     const vp = p.getViewport({scale: olcek * dpr});
+    const genislik = temel.width * olcek;
     tuval.width = vp.width; tuval.height = vp.height;
     tuval.style.width = genislik + 'px';
     tuval.style.height = (vp.height/dpr) + 'px';
