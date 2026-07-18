@@ -80,6 +80,7 @@ jobs:
           EOF
       - name: Uygulama ikonunu yerleştir
         run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
           cd build-apk
           RES=android/app/src/main/res
           # Capacitor'ın varsayılan adaptif ikon XML'lerini kaldır ki PNG kullansın
