@@ -1,0 +1,131 @@
+name: APK Üret
+
+# Elle çalıştır (Actions sekmesi → Run workflow)
+# veya v1.0 gibi bir etiket (tag) gönderince otomatik çalışır.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Depoyu al
+        uses: actions/checkout@v4
+
+      - name: Node kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Java kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Capacitor projesi oluştur
+        run: |
+          mkdir -p build-apk/www
+          cd build-apk
+          npm init -y >/dev/null
+          npm install --silent \
+            @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+
+          # PWA dosyalarını www klasörüne kopyala
+          cp ../index.html ../kitap.pdf ../pdf.min.js ../pdf.worker.min.js \
+             ../manifest.webmanifest ../favicon.png ../icon-192.png \
+             ../icon-512.png ../icon-512-maskable.png www/
+
+          # NOT: sw.js kopyalanmıyor. APK içinde dosyalar zaten cihazda;
+          # service worker gereksiz ve bazen çakışıyor.
+
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.tolgaerhanbalci.netapruva",
+            "appName": "Neta Pruva",
+            "webDir": "www",
+            "server": { "androidScheme": "https" },
+            "android": { "backgroundColor": "#123B5E" }
+          }
+          EOF
+
+          npx cap add android
+      - name: Tam ekran (edge-to-edge) ayarla
+        run: |
+          cd build-apk
+          PKG=android/app/src/main/java/com/tolgaerhanbalci/netapruva
+          cat > $PKG/MainActivity.java <<'EOF'
+          package com.tolgaerhanbalci.netapruva;
+
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import androidx.core.view.WindowCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              // WebView'i sistem çubuklarının (durum/gezinme) arkasına kadar uzat.
+              // index.html zaten env(safe-area-inset-*) ile bu alanları hesaba katıyor;
+              // eksik olan tek şey buydu. Bunsuz alt/üst çubuklar boş/uyumsuz renkte kalıyordu.
+              WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+              getWindow().setStatusBarColor(Color.TRANSPARENT);
+              getWindow().setNavigationBarColor(Color.TRANSPARENT);
+            }
+          }
+          EOF
+      - name: Uygulama ikonunu yerleştir
+        run: |
+          cd build-apk
+          RES=android/app/src/main/res
+          # Capacitor'ın varsayılan adaptif ikon XML'lerini kaldır ki PNG kullansın
+          rm -f $RES/mipmap-anydpi-v26/*.xml
+          for D in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            KLASOR=${D%%:*}; BOYUT=${D##*:}
+            mkdir -p $RES/mipmap-$KLASOR
+            convert ../icon-512.png -resize ${BOYUT}x${BOYUT} \
+              $RES/mipmap-$KLASOR/ic_launcher.png
+            cp $RES/mipmap-$KLASOR/ic_launcher.png \
+              $RES/mipmap-$KLASOR/ic_launcher_round.png
+          done
+
+      - name: APK derle
+        run: |
+          cd build-apk/android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: APK'yı yeniden adlandır
+        run: |
+          cp build-apk/android/app/build/outputs/apk/debug/app-debug.apk \
+             NetaPruva.apk
+          ls -lh NetaPruva.apk
+
+      # Actions sekmesinden indirilebilir
+      - name: APK'yı yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetaPruva-APK
+          path: NetaPruva.apk
+
+      # Etiket gönderildiyse herkese açık indirme linki oluştur
+      - name: Sürüm yayınla
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: NetaPruva.apk
+          name: Neta Pruva ${{ github.ref_name }}
+          body: |
+            **Neta Pruva — Yat Kaptanlığı El Kitabı**
+
+            Aşağıdaki `NetaPruva.apk` dosyasını indirip telefonuna kur.
+
+            Kurulumda *"Bilinmeyen kaynaklardan yüklemeye izin ver"*
+            uyarısı çıkarsa izin vermen gerekir.
+
+            iPhone kullanıyorsan: https://bondyegg.github.io/netapruva/
+            adresini Safari'de aç → Paylaş → Ana Ekrana Ekle.
