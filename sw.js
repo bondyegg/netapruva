@@ -1,4 +1,4 @@
-const CACHE = 'netapruva-v2';
+const CACHE = 'netapruva-v3';
 const DOSYALAR = ['./','./index.html','./pdf.min.js','./pdf.worker.min.js',
                   './kitap.pdf','./manifest.webmanifest','./icon-192.png','./icon-512.png','./favicon.png'];
 self.addEventListener('install', e=>{
